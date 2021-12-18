@@ -6,6 +6,7 @@ option go_package = "./;api";
 service Port {
   rpc GetPorts(GetPortsRequest) returns (GetPortsResponse);
   rpc UpsertPorts(UpsertPortsRequest) returns (UpsertPortsResponse);
+  rpc GetPort(GetPortRequest) returns (GetPortResponse);
 
 }
 
@@ -21,4 +22,10 @@ message UpsertPortsRequest {
 }
 message UpsertPortsResponse {
   string List = 1;
+}
+message GetPortRequest {
+  string Id = 1;
+}
+message GetPortResponse {
+  string Item = 1;
 }

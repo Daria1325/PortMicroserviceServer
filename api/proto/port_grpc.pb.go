@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type PortClient interface {
 	GetPorts(ctx context.Context, in *GetPortsRequest, opts ...grpc.CallOption) (*GetPortsResponse, error)
 	UpsertPorts(ctx context.Context, in *UpsertPortsRequest, opts ...grpc.CallOption) (*UpsertPortsResponse, error)
+	GetPort(ctx context.Context, in *GetPortRequest, opts ...grpc.CallOption) (*GetPortResponse, error)
 }
 
 type portClient struct {
@@ -48,12 +49,22 @@ func (c *portClient) UpsertPorts(ctx context.Context, in *UpsertPortsRequest, op
 	return out, nil
 }
 
+func (c *portClient) GetPort(ctx context.Context, in *GetPortRequest, opts ...grpc.CallOption) (*GetPortResponse, error) {
+	out := new(GetPortResponse)
+	err := c.cc.Invoke(ctx, "/api.Port/GetPort", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PortServer is the server API for Port service.
 // All implementations must embed UnimplementedPortServer
 // for forward compatibility
 type PortServer interface {
 	GetPorts(context.Context, *GetPortsRequest) (*GetPortsResponse, error)
 	UpsertPorts(context.Context, *UpsertPortsRequest) (*UpsertPortsResponse, error)
+	GetPort(context.Context, *GetPortRequest) (*GetPortResponse, error)
 	mustEmbedUnimplementedPortServer()
 }
 
@@ -66,6 +77,9 @@ func (UnimplementedPortServer) GetPorts(context.Context, *GetPortsRequest) (*Get
 }
 func (UnimplementedPortServer) UpsertPorts(context.Context, *UpsertPortsRequest) (*UpsertPortsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpsertPorts not implemented")
+}
+func (UnimplementedPortServer) GetPort(context.Context, *GetPortRequest) (*GetPortResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPort not implemented")
 }
 func (UnimplementedPortServer) mustEmbedUnimplementedPortServer() {}
 
@@ -116,6 +130,24 @@ func _Port_UpsertPorts_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Port_GetPort_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPortRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortServer).GetPort(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Port/GetPort",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortServer).GetPort(ctx, req.(*GetPortRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Port_ServiceDesc is the grpc.ServiceDesc for Port service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -130,6 +162,10 @@ var Port_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpsertPorts",
 			Handler:    _Port_UpsertPorts_Handler,
+		},
+		{
+			MethodName: "GetPort",
+			Handler:    _Port_GetPort_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

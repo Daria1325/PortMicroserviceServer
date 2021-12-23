@@ -1,1 +1,1 @@
-DROP TABLE ports;
+DROP TABLE IF EXISTS ports;

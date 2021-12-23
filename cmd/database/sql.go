@@ -2,14 +2,24 @@ package database
 
 import (
 	"fmt"
+	cnfg "github.com/daria/PortMicroservice/data/config"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"strconv"
 )
 
 type Port struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	City string `json:"city"`
+	ID         int     `json:"id"`
+	Name       string  `json:"name"`
+	IsActive   bool    `json:"isActive" db:"is_active"`
+	Company    string  `json:"company"`
+	Email      string  `json:"email"`
+	Phone      string  `json:"phone"`
+	Address    string  `json:"address" db:"address"`
+	About      string  `json:"about"`
+	Registered string  `json:"registered"`
+	Latitude   float64 `json:"latitude"`
+	Longitude  float64 `json:"longitude"`
 }
 
 type Repo struct {
@@ -38,23 +48,22 @@ func (r *Repo) GetPorts() []Port {
 	return ports
 }
 func (r *Repo) AddPort(item Port) {
-	if item.ID != "" {
-		_, err := r.db.NamedExec(`INSERT INTO ports (id,name, city)
-        VALUES (:id, :name, :city)`, item)
+	if strconv.Itoa(item.ID) != "" {
+		_, err := r.db.NamedExec(`INSERT INTO ports (id,name, is_active,company,email,phone,address,about,registered,latitude,longitude)
+        VALUES (:id, :name, :is_active, :company, :email, :phone, :address, :about, :registered, :latitude, :longitude)`, item)
 		if err != nil {
 			panic(err)
 		}
 		return
 	}
-	_, err := r.db.NamedExec(`INSERT INTO ports (name, city)
-        VALUES (:name, :city)`, item)
+	_, err := r.db.NamedExec(`INSERT INTO ports (name, is_active,company,email,phone, address,about,registered,latitude,longitude)
+        VALUES (:name, :is_active, :company, :email, :phone, :address :about, :registered, :latitude, :longitude)`, item)
 	if err != nil {
 		panic(err)
 	}
-	//return ports
 }
 func (r *Repo) UpdatePort(item Port) {
-	_, err := r.db.NamedExec(`UPDATE ports SET name=:name, city=:city WHERE id =:id`, item)
+	_, err := r.db.NamedExec(`UPDATE ports SET name=:name, is_active=:is_active, company= :company, email=:email, phone= :phone, address= :address, about= :about, registered=:registered, latitude=:latitude, longitude=:longitude WHERE id =:id`, item)
 	if err != nil {
 		panic(err)
 	}
@@ -64,9 +73,8 @@ func (r *Repo) Close() error {
 	return err
 }
 
-func Init() *Repo {
-	db, err := sqlx.Open("postgres", "user=postgres password=12345 dbname=portDb sslmode=disable")
-	//db, err := sqlx.Open("postgres", "user=postgres password=12345"+databaseUrl)
+func Init(config *cnfg.Config) *Repo {
+	db, err := sqlx.Open("postgres", fmt.Sprintf("host =%s port=%s user=%s password=%s dbname=%s sslmode=disable", config.DbHost, config.DbPort, config.DbUser, config.DbPassword, config.DbName))
 	if err != nil {
 		return nil
 	}

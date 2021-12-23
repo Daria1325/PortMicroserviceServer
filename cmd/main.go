@@ -15,10 +15,10 @@ var (
 )
 
 func main() {
-	config, err := cnfg.NewConfigPath(ConfigPath)
+	config, _ := cnfg.NewConfigPath(ConfigPath)
 	grpcServer := grpc.NewServer()
 	portService := server.GRPCServer{}
-	portService.Repo = database.Init()
+	portService.Repo = database.Init(config)
 	defer portService.Repo.Close()
 
 	api.RegisterPortServer(grpcServer, &portService)

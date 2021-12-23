@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	api "github.com/daria/PortMicroservice/api/proto"
 	"github.com/daria/PortMicroservice/cmd/database"
 	"github.com/pingcap/errors"
+	"log"
+	"strconv"
 )
 
 type GRPCServer struct {
@@ -27,11 +30,12 @@ func (d *GRPCServer) GetPort(ctx context.Context, req *api.GetPortRequest) (*api
 	d.ports = d.Repo.GetPorts()
 
 	for _, item := range d.ports {
-		if item.ID == req.Id {
+		if strconv.Itoa(item.ID) == req.Id {
 			w, err := json.Marshal(item)
 			if err != nil {
 				return nil, err
 			}
+			w = []byte(fmt.Sprintf("[%s]", w))
 			return &api.GetPortResponse{Item: string(w)}, nil
 		}
 	}
@@ -40,22 +44,26 @@ func (d *GRPCServer) GetPort(ctx context.Context, req *api.GetPortRequest) (*api
 func (d *GRPCServer) UpsertPorts(ctx context.Context, req *api.UpsertPortsRequest) (*api.UpsertPortsResponse, error) {
 	d.ports = d.Repo.GetPorts()
 
-	isNotInDatabase := true
 	var portArray []database.Port
 
 	err := json.Unmarshal([]byte(req.Name), &portArray)
 	if err != nil {
+		log.Fatal(err)
 		return nil, err
 	}
 
 	for _, port := range portArray {
-		for _, item := range d.ports {
-			if item.ID == port.ID {
-				isNotInDatabase = false
-				d.Repo.UpdatePort(port)
-				continue
+		isNotInDatabase := true
+		if len(d.ports) != 0 {
+			for _, item := range d.ports {
+				if item.ID == port.ID {
+					isNotInDatabase = false
+					d.Repo.UpdatePort(port)
+					continue
+				}
 			}
 		}
+
 		if isNotInDatabase {
 			d.Repo.AddPort(port)
 		}

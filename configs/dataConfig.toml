@@ -1,2 +1,9 @@
 bind_addr = ":9080"
 json_path = "data/ports.json"
+
+db_name = "portDb"
+db_user = "postgres"
+db_password = "12345"
+#db_host = "db"
+db_host = "localhost"
+db_port  = "5432"

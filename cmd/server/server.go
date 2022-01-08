@@ -13,23 +13,27 @@ import (
 
 type GRPCServer struct {
 	api.UnimplementedPortServer
-	ports []database.Port
-	Repo  *database.Repo
+	Repo *database.Repo
 }
 
-func (d *GRPCServer) GetPorts(ctx context.Context, req *api.GetPortsRequest) (*api.GetPortsResponse, error) {
-	d.ports = d.Repo.GetPorts()
-
-	w, err := json.Marshal(d.ports)
+func (d *GRPCServer) GetPorts(ctx context.Context, _ *api.GetPortsRequest) (*api.GetPortsResponse, error) {
+	ports, err := d.Repo.GetPorts()
+	if err != nil {
+		return nil, err
+	}
+	w, err := json.Marshal(ports)
 	if err != nil {
 		return nil, err
 	}
 	return &api.GetPortsResponse{List: string(w)}, nil
 }
 func (d *GRPCServer) GetPort(ctx context.Context, req *api.GetPortRequest) (*api.GetPortResponse, error) {
-	d.ports = d.Repo.GetPorts()
+	ports, err := d.Repo.GetPorts()
+	if err != nil {
+		return nil, err
+	}
 
-	for _, item := range d.ports {
+	for _, item := range ports {
 		if strconv.Itoa(item.ID) == req.Id {
 			w, err := json.Marshal(item)
 			if err != nil {
@@ -42,11 +46,15 @@ func (d *GRPCServer) GetPort(ctx context.Context, req *api.GetPortRequest) (*api
 	return &api.GetPortResponse{Item: "Not found, check the Id"}, errors.New("Not found")
 }
 func (d *GRPCServer) UpsertPorts(ctx context.Context, req *api.UpsertPortsRequest) (*api.UpsertPortsResponse, error) {
-	d.ports = d.Repo.GetPorts()
+	updatedId := "Id: "
+	ports, err := d.Repo.GetPorts()
+	if err != nil {
+		return nil, err
+	}
 
 	var portArray []database.Port
 
-	err := json.Unmarshal([]byte(req.Name), &portArray)
+	err = json.Unmarshal([]byte(req.Name), &portArray)
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
@@ -54,26 +62,27 @@ func (d *GRPCServer) UpsertPorts(ctx context.Context, req *api.UpsertPortsReques
 
 	for _, port := range portArray {
 		isNotInDatabase := true
-		if len(d.ports) != 0 {
-			for _, item := range d.ports {
+		if len(ports) != 0 {
+			for _, item := range ports {
 				if item.ID == port.ID {
+					updatedId = fmt.Sprintf("%s %d", updatedId, item.ID)
 					isNotInDatabase = false
-					d.Repo.UpdatePort(port)
+					err := d.Repo.UpdatePort(port)
+					if err != nil {
+						return nil, err
+					}
 					continue
 				}
 			}
 		}
 
 		if isNotInDatabase {
-			d.Repo.AddPort(port)
+			err := d.Repo.AddPort(port)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
-	d.ports = d.Repo.GetPorts()
 
-	w, err := json.Marshal(d.ports)
-	if err != nil {
-		return nil, err
-	}
-
-	return &api.UpsertPortsResponse{List: string(w)}, nil
+	return &api.UpsertPortsResponse{List: updatedId}, nil
 }

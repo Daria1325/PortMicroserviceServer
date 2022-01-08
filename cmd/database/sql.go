@@ -30,43 +30,48 @@ func New(db *sqlx.DB) *Repo {
 	return &Repo{db: db}
 }
 
-func (r *Repo) GetPorts() []Port {
+func (r *Repo) GetPorts() ([]Port, error) {
 	ports := []Port{}
 	rows, err := r.db.Queryx("SELECT * FROM ports")
 	if err != nil {
-		panic(err)
+		fmt.Errorf("failed to execute the query: %v", err.Error())
+		return nil, err
 	}
 	for rows.Next() {
 		var p Port
 		err = rows.StructScan(&p)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Errorf("%s", err.Error())
 			continue
 		}
 		ports = append(ports, p)
 	}
-	return ports
+	return ports, nil
 }
-func (r *Repo) AddPort(item Port) {
+func (r *Repo) AddPort(item Port) error {
 	if strconv.Itoa(item.ID) != "" {
 		_, err := r.db.NamedExec(`INSERT INTO ports (id,name, is_active,company,email,phone,address,about,registered,latitude,longitude)
         VALUES (:id, :name, :is_active, :company, :email, :phone, :address, :about, :registered, :latitude, :longitude)`, item)
 		if err != nil {
-			panic(err)
+			fmt.Errorf("failed to execute the query: %v", err.Error())
+			return err
 		}
-		return
 	}
 	_, err := r.db.NamedExec(`INSERT INTO ports (name, is_active,company,email,phone, address,about,registered,latitude,longitude)
         VALUES (:name, :is_active, :company, :email, :phone, :address :about, :registered, :latitude, :longitude)`, item)
 	if err != nil {
-		panic(err)
+		fmt.Errorf("failed to execute the query: %v", err.Error())
+		return err
 	}
+	return nil
 }
-func (r *Repo) UpdatePort(item Port) {
+func (r *Repo) UpdatePort(item Port) error {
 	_, err := r.db.NamedExec(`UPDATE ports SET name=:name, is_active=:is_active, company= :company, email=:email, phone= :phone, address= :address, about= :about, registered=:registered, latitude=:latitude, longitude=:longitude WHERE id =:id`, item)
 	if err != nil {
-		panic(err)
+		fmt.Errorf("failed to execute the query: %v", err.Error())
+		return err
 	}
+	return nil
 }
 func (r *Repo) Close() error {
 	err := r.db.Close()
